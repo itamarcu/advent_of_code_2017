@@ -1,4 +1,4 @@
-def day_15():
+def day_16():
     with open("input.txt") as file:
         line = file.readline()
         moves = line.strip().split(",")
@@ -52,4 +52,4 @@ def day_15():
     part_2()
 
 
-day_15()
+day_16()
