@@ -1,4 +1,5 @@
-from Lib import queue
+import threading
+import queue
 
 
 def day_18():
@@ -42,12 +43,12 @@ def day_18():
             else:
                 print("Error!" + cmd)
             curr += 1
-            
+        
         print("Part 1:", last_sound)  # 4601
     
     def part_2():
         class Program():
-            def __init__(self):
+            def __init__(self, id):
                 self.registers = [0 for _ in range(16)]
                 self.curr = 0
                 self.terminated = False
@@ -55,6 +56,8 @@ def day_18():
                 self.send_queue = None  # should be set by me later
                 self.receive_queue = queue.Queue()
                 self.times_sent = 0
+                self.id = id
+                self.registers[ord('p') - ord('a')] = id
             
             def step(self):
                 while not self.terminated:
@@ -69,7 +72,7 @@ def day_18():
                     a2 = int(args[-1]) if is_int(args[-1]) else self.registers[
                         ord(args[-1]) - ord('a')]
                     if cmd == "snd":
-                        self.send_queue.put(self.registers[a1])
+                        self.send_queue.put_nowait(self.registers[a1])
                         self.times_sent += 1
                     elif cmd == "set":
                         self.registers[a1] = a2
@@ -80,11 +83,14 @@ def day_18():
                     elif cmd == "mod":
                         self.registers[a1] %= a2
                     elif cmd == "rcv":
-                        if self.receive_queue.empty():
-                            self.waiting = True
+                        try:
+                            self.registers[a1] = self.receive_queue.get(True,
+                                                                        0.98765)
+                        except queue.Empty:
+                            print("Deadlocked!")
+                            print("Program", self.id, "sent", self.times_sent,
+                                  "signals!")
                             return
-                        else:
-                            self.registers[a1] = self.receive_queue.get()
                     elif cmd == "jgz":
                         if a1 < 0 or a1 >= N:
                             if is_int(args[0]) and int(
@@ -98,19 +104,14 @@ def day_18():
                     if not (0 <= self.curr < N):
                         self.terminated = True
         
-        prog0 = Program()
-        prog1 = Program()
-        prog0.registers[15] = 0
-        prog1.registers[15] = 1
+        prog0 = Program(0)
+        prog1 = Program(1)
         prog0.send_queue = prog1.receive_queue
         prog1.send_queue = prog0.receive_queue
+
+        threading.Thread(target=Program.step, args=(prog0,)).start()
+        threading.Thread(target=Program.step, args=(prog1,)).start()
         
-        while True:
-            prog0.step()
-            prog1.step()
-            if prog0.terminated and prog1.terminated:
-                print("Part 2:", prog1.times_sent)  # 6858
-                return
     
     part_1()
     part_2()
