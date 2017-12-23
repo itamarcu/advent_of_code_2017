@@ -35,3 +35,6 @@ def best_partition(array, d):
             min_guess = guess + 1
     
     return current_sum, current_partition
+
+
+print(best_partition(array=range(2, 60, 3), d=3))
